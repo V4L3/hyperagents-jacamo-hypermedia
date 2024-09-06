@@ -1,10 +1,15 @@
 package org.hyperagents.jacamo.artifacts.yggdrasil;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.AbstractQueue;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
@@ -39,6 +44,7 @@ import cartago.OPERATION;
 public class NotificationServerArtifact extends Artifact {
     private Map<String, ArtifactId> artifactRegistry;
     private AbstractQueue<Notification> notifications;
+    private Set<NotificationKey> receivedNotifications; // Set to track received notifications
 
     private String callbackUri;
 
@@ -62,6 +68,7 @@ public class NotificationServerArtifact extends Artifact {
 
         artifactRegistry = new Hashtable<String, ArtifactId>();
         notifications = new ConcurrentLinkedQueue<Notification>();
+        receivedNotifications = new HashSet<>();
     }
 
     /**
@@ -74,8 +81,9 @@ public class NotificationServerArtifact extends Artifact {
      */
     @OPERATION
     void registerArtifactForWebSub(String artifactIRI, ArtifactId artifactId, String hubIRI) {
-        artifactRegistry.put(artifactIRI, artifactId);
-        sendSubscribeRequest(hubIRI, artifactIRI);
+        String cleanedArtifactIRI = artifactIRI.replaceAll("#.*$", "");
+        artifactRegistry.put(cleanedArtifactIRI, artifactId);
+        sendSubscribeRequest(hubIRI, cleanedArtifactIRI);
     }
 
     /**
@@ -89,8 +97,12 @@ public class NotificationServerArtifact extends Artifact {
     @OPERATION
     void registerArtifactForFocus(String workspaceIRI, String artifactIRI, ArtifactId artifactId,
             String artifactName) {
-        artifactRegistry.put(artifactIRI, artifactId);
-        sendFocusRequest(workspaceIRI, artifactName);
+
+        String cleanedWorkspaceIRI = workspaceIRI.replaceAll("#.*$", "");
+        String cleanedArtifactIRI = artifactIRI.replaceAll("#.*$", "");
+
+        artifactRegistry.put(cleanedArtifactIRI, artifactId);
+        sendFocusRequest(cleanedWorkspaceIRI, artifactName);
     }
 
     /**
@@ -231,7 +243,16 @@ public class NotificationServerArtifact extends Artifact {
                 if (artifactRegistry.containsKey(artifactIRI)) {
                     String payload = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
 
-                    notifications.add(new Notification(artifactIRI, payload));
+                    NotificationKey key = new NotificationKey(artifactIRI, payload);
+                    synchronized (receivedNotifications) {
+                        if (receivedNotifications.contains(key)) {
+                            response.setStatus(HttpServletResponse.SC_OK);
+                            baseRequest.setHandled(true);
+                            return;
+                        }
+                        receivedNotifications.add(key);
+                        notifications.add(new Notification(artifactIRI, payload));
+                    }
 
                     response.setStatus(HttpServletResponse.SC_OK);
                 } else {
@@ -240,6 +261,49 @@ public class NotificationServerArtifact extends Artifact {
             }
 
             baseRequest.setHandled(true);
+
+            // Clean up messages older than 30 minutes
+            cleanUpOldNotifications();
+        }
+    }
+
+    private void cleanUpOldNotifications() {
+        synchronized (receivedNotifications) {
+            Instant oneHourAgo = Instant.now().minus(Duration.ofMinutes(30));
+            receivedNotifications.removeIf(notificationKey -> notificationKey.getTimestamp().isBefore(oneHourAgo));
+        }
+    }
+
+    // A helper class to identify a notification uniquely
+    class NotificationKey {
+        private String artifactIRI;
+        private String payload;
+        private Instant timestamp;
+
+        public NotificationKey(String artifactIRI, String payload) {
+            this.artifactIRI = artifactIRI;
+            this.payload = payload;
+            this.timestamp = Instant.now();
+        }
+
+        public Instant getTimestamp() {
+            return timestamp;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            NotificationKey that = (NotificationKey) o;
+            return Objects.equals(artifactIRI, that.artifactIRI) &&
+                    Objects.equals(payload, that.payload);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(artifactIRI, payload);
         }
     }
 
