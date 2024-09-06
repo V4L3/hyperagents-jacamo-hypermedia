@@ -1,0 +1,12 @@
+mas jacamo_hypermedia {
+    agent sa: s_agent.asl {
+        beliefs: home_workspace("apartment_complex", "http://localhost:8080/workspaces/10/#workspace")
+                 webid("http://localhost:8080/agents/security_agent")
+                 relevant_semantic_type("http://example.org/LightBulb")
+                 relevant_semantic_type("http://example.org/Blind")
+                 relevant_semantic_type("http://example.org/SecuritySystem")
+                 relevant_semantic_type("http://example.org/SyncedSecuritySystem")
+                 relevant_semantic_type("http://example.org/OccupancySensor")
+                 relevant_semantic_type("http://example.org/SyncedOccupancySensor")
+    }
+}

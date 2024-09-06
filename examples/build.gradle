@@ -94,6 +94,21 @@ task runWebSubObserver (type: JavaExec, dependsOn: 'classes') {
     classpath sourceSets.main.runtimeClasspath
 }
 
+task runBA (type: JavaExec, dependsOn: 'classes') {
+    group       ' JaCaMo'
+    description 'runs the JaCaMo application for BA'
+    doFirst {
+        mkdir 'log'
+    }
+    main 'jacamo.infra.JaCaMoLauncher'
+    if(project.hasProperty('jcmFile')){
+        args jcmFile
+    } else {
+        args 'jacamo_hypermedia_ba.jcm'
+    }
+    classpath sourceSets.main.runtimeClasspath
+}
+
 task uberJar(type: Jar, dependsOn: 'classes') {
     group      ' JaCaMo'
     description 'creates a single runnable jar file with all dependencies'
