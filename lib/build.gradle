@@ -27,6 +27,8 @@ dependencies {
     implementation 'org.jacamo:jacamo:1.2.3'
     implementation 'com.github.Interactions-HSG:wot-td-java:master-SNAPSHOT'
     implementation 'org.eclipse.rdf4j:rdf4j-runtime:3.2.1'
+    implementation 'com.google.code.gson:gson:2.8.9'
+
 
     implementation 'org.apache.httpcomponents.client5:httpclient5-fluent:5.0'
     implementation 'org.eclipse.jetty.aggregate:jetty-all:9.0.0.RC2'
