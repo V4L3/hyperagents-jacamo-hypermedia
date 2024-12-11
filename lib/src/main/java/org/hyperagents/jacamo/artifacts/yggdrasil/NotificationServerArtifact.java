@@ -198,7 +198,8 @@ public class NotificationServerArtifact extends Artifact {
         try {
             client.start();
 
-            ContentResponse response = client.POST(workspaceIRI + "/focus")
+            // ContentResponse response = client.POST(workspaceIRI + "/focus")
+            ContentResponse response = client.POST("http://localhost:3000/focus")
                     .header("X-Agent-WebID",
                             "http://localhost:8080/agents/" + this.getCurrentOpAgentId().getAgentName())
                     .content(new StringContentProvider("{"
