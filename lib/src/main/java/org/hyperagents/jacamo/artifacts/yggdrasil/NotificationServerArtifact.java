@@ -203,6 +203,7 @@ public class NotificationServerArtifact extends Artifact {
                     .header("X-Agent-WebID",
                             "http://localhost:8080/agents/" + this.getCurrentOpAgentId().getAgentName())
                     .content(new StringContentProvider("{"
+                            + "\"originalTarget\" : \"" + workspaceIRI + "/focus" + "\","
                             + "\"artifactName\" : \"" + artifactName + "\","
                             + "\"callbackIri\" : \"" + callbackUri + "\""
                             + "}"), "application/json")
